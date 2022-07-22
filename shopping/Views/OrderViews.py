@@ -131,7 +131,7 @@ class OrderedItemCreate(APIView):
         return Response(data=context)
 
 
-class GetCart(APIView):
+class GetOrder(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes     = [IsAuthenticated]
     serializer_class       = OrderedItemSerializerList
@@ -156,6 +156,9 @@ class GetCart(APIView):
         context['ItemsQuantity'] = Cart.get_cart_quantity
         context['TotalPrice']    = Cart.get_cart_total
         context['OrderStatus']   = Cart.get_order_status
+        if Cart.transaction_id:
+              context['transaction_id']   = Cart.transaction_id
+
         context['response']      ='success'
 
         return Response(data=context)
@@ -165,6 +168,7 @@ class Checkout(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes     = [IsAuthenticated]
     serializer_class       = OrderedItemSerializer
+
     @swagger_auto_schema(request_body=openapi.Schema(operation_description="API to Check Out",
      type=openapi.TYPE_OBJECT,
      properties={
@@ -174,7 +178,12 @@ class Checkout(APIView):
 
     def post(self,request):
 
+
         context={}
+        if   request.user.is_vendor :
+            context['response'] = 'error'
+            context['error'] = 'restricted access'
+            return Response(data=context)
 
         id             = request.data.get('Orderid')
         transaction_id = request.data.get('transaction_id')
@@ -197,15 +206,85 @@ class Checkout(APIView):
         Cart.transaction_id = transaction_id
 
         serializer          = self.serializer_class(OrderedItems,many=True)
+        if serializer.is_valid():
+            serializer.save()
+            context['OrderedItems']     = serializer.data
+            context['ItemsQuantity']    = Cart.get_cart_quantity
+            context['TotalPrice']       = Cart.get_cart_total
+            context['OrderStatus']      = Cart.get_order_status
+            context['transaction_id']   = transaction_id
+            context['address']          = request.user.customer.address
+            context['response']      ='success'
+            return Response(data=context)
 
-        context['OrderedItems']     = serializer.data
-        context['ItemsQuantity']    = Cart.get_cart_quantity
-        context['TotalPrice']       = Cart.get_cart_total
-        context['OrderStatus']      = Cart.get_order_status
-        context['transaction_id']   = transaction_id
-        context['response']      ='success'
-
+        context = serializer.errors.copy()
+        context['response'] = 'error'
         return Response(data=context)
+
+
+
+class status(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes     = [IsAuthenticated]
+    serializer_class       = OrderedItemSerializer
+    @swagger_auto_schema(request_body=openapi.Schema(operation_description="API to Check Out",
+     type=openapi.TYPE_OBJECT,
+     properties={
+        'OrderedItemid'  : openapi.Schema(type=openapi.TYPE_INTEGER , description='Order PK'),
+        'status': openapi.Schema(type=openapi.TYPE_INTEGER  , description='status of item [(1,"preparing"),(2,"Ready"),(3,"Delivering"),(4,"Delivered"),(-1,"Cancelled"),(0,"Pending")]'),
+     }), responses={201: OrderedItemSerializer, 400 : 'Bad Request'})
+
+    def post(self,request):
+        context={}
+
+        if  not request.user.is_vendor :
+
+            context['response'] = 'error'
+            context['error'] = 'restricted access'
+            return Response(data=context)
+
+
+        OrderedItemid          = request.data.get('OrderedItemid')
+
+        Ordereditems           = OrderItem.objects.filter(pk=OrderedItemid)
+
+
+
+
+
+        if(len(Ordereditems)<0):
+
+            context['response'] = 'error'
+            context['error'] = 'wrong  id item not found'
+            return Response(data=context)
+
+        Ordereditem =Ordereditems[0]
+
+        if request.data.get('status')==-1:
+            item = Ordereditem.item
+            item.quantity = item.quantity + Ordereditem.quantity
+
+
+
+
+        data=request.data.copy
+
+        serializer = self.serializer_class(Ordereditems,data,partial=True)
+        if serializer.is_valid():
+             serializer.save()
+
+             context['status'] = Ordereditem.status
+             context['response'] = 'success'
+             return Response(data=context)
+
+
+
+        context = serializer.errors.copy()
+        context['response'] = 'error'
+        return Response(data=context)
+
+
 
 
 

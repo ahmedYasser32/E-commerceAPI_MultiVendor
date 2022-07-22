@@ -1,5 +1,5 @@
 from shopping.Views.ItemViews  import ItemPost,ItemGet,ItemDelete
-from shopping.Views.OrderViews import OrderedItemCreate, GetCart
+from shopping.Views.OrderViews import OrderedItemCreate, GetOrder,Checkout
 from django.urls import path
 
 
@@ -11,7 +11,8 @@ urlpatterns = [
     path('GetItem/<int:id>',ItemGet.as_view()),
     path('GetItems/',ItemGet.as_view()),
     path('AddItemToCart/',OrderedItemCreate.as_view()),
-    path('GetCart/<int:id>',GetCart.as_view()),
+    path('GetOrder/<int:id>',GetOrder.as_view()),
+    path('Checkout/',Checkout.as_view())
 
 
 
