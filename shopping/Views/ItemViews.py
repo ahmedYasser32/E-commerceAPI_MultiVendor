@@ -258,10 +258,16 @@ class ItemGetList(APIView):
             items = Item.objects.all().order_by(sortby)
 
         else:
-            for i in filters:
-                print(i)
-                items = Item.objects.filter(i).order_by(sortby)
 
+            for i in filters:
+
+                print("inside loop")
+                items = items.filter(i).order_by(sortby)
+                items = items
+
+                print(i)
+                print(items)
+            print("outside loop")
 
 
         if items.count() == 0:
