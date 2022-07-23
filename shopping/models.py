@@ -1,7 +1,22 @@
+import os
+from uuid import uuid4
 from django.db import models
 from Accounts.models  import Account,Customer,Vendor
 from django.core.validators import MaxValueValidator, MinValueValidator
 # Create your models here.
+
+
+def image_upload_path(instance, filename):
+    upload_to = 'media/'
+    ext = filename.split('.')[-1]
+    # get filename
+    if instance.name:
+        filename = '{}.{}'.format(instance.name, ext)
+    else:
+        # set filename as random string
+        filename = '{}.{}'.format(uuid4().hex, ext)
+    # return the whole path to the file
+    return os.path.join(upload_to, filename)
 
 
 class Item(models.Model):
@@ -17,6 +32,7 @@ class Item(models.Model):
   price         = models.IntegerField(default=0, null=True, blank=True)
   quantity      = models.PositiveIntegerField(default=0, null=True, blank=True)
   vendor        = models.ForeignKey(Vendor,default=-1,on_delete=models.CASCADE)
+  picture = models.ImageField(upload_to=image_upload_path, blank=True, null=True)
 
 
 class Order(models.Model):

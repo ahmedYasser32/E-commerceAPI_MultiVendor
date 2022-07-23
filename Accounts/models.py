@@ -60,16 +60,25 @@ class Account(AbstractBaseUser):
     def __str__(self):
         return self.email
 
-   #      Allows us to get a user's token by calling `user.token` instead of
-   #      `user.generate_jwt_token().
-   #
-   #      The `@property` decorator above makes this possible. `token` is called
-   #      a "dynamic property".
+    def verify(self):
+        from SpreeTask.tasks import  SendVerificationMail
+        email = self.email
 
+        digits = "0123456789"
+        OTP = ""
+        for i in range(6):
+            OTP += digits[math.floor(random.random() * 10)]
+        codes = AccountCode.objects.filter(user=self.pk)
+        if codes.count() == 0:
+            codes = AccountCode.objects.create(user=self, verification_code=OTP)
+        else:
+            codes = codes[0]
+        codes.verification_code = OTP
+        codes.save()
+        subject = f'hi {self.firstname}, this mail is for your verification code:'
+        # body = f'your verification code is: {codes.verification_code}'
+        SendVerificationMail(subject=subject, to=email, code=codes.verification_code).start()
 
-
-        # Generates a JSON Web Token that stores this user's ID and has an expiry
-        # date set to 10 days into the future.
 
 
     def has_perm(self, perm, obj=None):
@@ -102,3 +111,8 @@ class Vendor(models.Model):
     brand            = models.CharField(max_length=50)
     about            = models.CharField(max_length=500)
     rating           = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], blank=True, null=True)
+
+class AccountCode(models.Model):
+	user              = models.OneToOneField(Account, on_delete=models.CASCADE)
+	verification_code = models.CharField(max_length=6, null=False, blank=False)
+

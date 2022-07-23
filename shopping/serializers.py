@@ -36,5 +36,10 @@ class OrderedItemSerializerList(serializers.ModelSerializer):
      name     = serializers.CharField(source='item.name')
      class Meta:
          model = OrderItem
-         fields = ('name','quantity','get_total','status')
+         fields = '__all__'
+
+class PictureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = ['picture']
 

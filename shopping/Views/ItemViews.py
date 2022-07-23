@@ -1,3 +1,4 @@
+from rest_framework.parsers import MultiPartParser, JSONParser
 from django.db.models import Case, When, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,11 +11,12 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 import datetime as dt
-
 from Accounts.models import Vendor
 from shopping.models import Item
-from shopping.serializers import PostItemSerializer,GetItemSerializer
+from shopping.serializers import PostItemSerializer,GetItemSerializer, PictureSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
 
 
 
@@ -127,15 +129,37 @@ class ItemPost(APIView):
             context['response'] = 'error'
             return Response(data=context)
 
-
-
 class ItemGet(APIView):
     authentication_classes  = []
     permission_classes      = []
     serializer_class        = GetItemSerializer
     @swagger_auto_schema(operation_description=" Item id in the url to get the response ",
                          responses={201: serializer_class, 400: 'Bad Request'})
-    def get(self, request,id):
+    def get(self, request, id):
+
+        context={}
+        item = Item.objects.filter(pk=id)
+
+        if item.count() == 0:
+            context['response'] = 'error'
+            context['error'] = 'Item doesnt exist'
+            return Response(data=context)
+
+        Item_detail = item[0]
+
+        serializer          = self.serializer_class(Item_detail)
+        context             = {**context, **serializer.data}
+        context['response'] ='success'
+        return Response(data=context)
+
+
+class ItemGetList(APIView):
+    authentication_classes  = []
+    permission_classes      = []
+    serializer_class        = GetItemSerializer
+    @swagger_auto_schema(operation_description=" Item id in the url to get the response ",
+                         responses={201: serializer_class, 400: 'Bad Request'})
+    def get(self, request, id):
 
         context={}
         item = Item.objects.filter(pk=id)
@@ -156,7 +180,9 @@ class ItemGet(APIView):
     @swagger_auto_schema(operation_description="returns a list of items,if you entered filters or sorting they will be filtered and "
     "sorted , filters are ?category= (M forMen WM for Women K for Kids) choose a letter after =, you can add another filters like this "
     "?category=K&type=(You can choose a type C fror casual FM for formal and SP for Sport you can also choose a sorting by  sortby= price or quantity or leave it to defaul, by newest"
-    "You can also filter by price range by sending lowPrice=  and highPrice= the words and values must be sent just like I typed them here",
+    "You can also filter by price range by sending lowPrice=  and highPrice= the words and values must be sent just like I typed them here"
+    "URl Example :  api/shopping/GetItems/?category=&type=&brand=&sortby=&lowPrice=&highPrice= /"
+                                               "Put the values after=",
                          responses={200: serializer_class, 400: 'Bad Request'})
     def get(self, request):
 
@@ -273,6 +299,49 @@ class ItemDelete(APIView):
 
         Item_detail.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+class PictureUploadView(APIView):
+
+    permission_classes = [IsAuthenticated]
+    parser_class = (MultiPartParser, JSONParser)
+
+
+
+    @swagger_auto_schema(request_body=openapi.Schema(
+     type=openapi.TYPE_OBJECT,
+     properties={
+     'picture' :  openapi.Schema(type=openapi.TYPE_FILE , description='.pdf or imgs '),
+     }),
+     responses={201: PictureSerializer , 400 : 'Bad Request'})
+    def put(self, request, id, *args, **kwargs):
+
+        context={}
+        item = Item.objects.filter(id = id, vendor__account_id=request.user.pk).first()
+
+        if not item:
+            context['response'] = 'Error'
+            context['error_message'] = 'item not found'
+            return Response(data=context)
+
+
+
+        context['picture'] = request.FILES.get('picture')
+
+        file_serializer = PictureSerializer(item ,data=context)
+
+        if file_serializer.is_valid():
+
+            file_serializer.save()
+            context = file_serializer.data.copy()
+
+            context['response']    = "Success"
+            return Response(data= context, status=status.HTTP_201_CREATED)
+        else:
+            return Response(file_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

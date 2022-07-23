@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import status
-from Accounts.models import Account,Vendor,Customer
+from Accounts.models import Account, Vendor, Customer, AccountCode
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,7 +9,8 @@ from rest_framework import authentication, permissions
 from rest_framework.decorators import *
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from Accounts.serializers import RegistrationSerializer,MyTokenObtainPairSerializer, CustomerSerializer,VendorSerializer
+from Accounts.serializers import RegistrationSerializer, MyTokenObtainPairSerializer, CustomerSerializer, \
+    VendorSerializer, AccountCodeSerializer
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -353,6 +354,48 @@ class Customerget(APIView):
             context             = {**context, **serializer.data}
             context['response'] ='success'
             return Response(data=context)
+
+@api_view(['POST', ])
+@permission_classes([])
+def check_verification_mail(request):
+    data={}
+    if request.method == 'POST':
+        request.user.verify()
+        data['response'] = 'success'
+        data['email'] = request.user.email
+        return Response(data)
+
+@swagger_auto_schema(
+     request_body= AccountCodeSerializer,
+      method='post',
+
+     responses={200:" Email +Success" , 400 : 'Bad Request'})
+@api_view(['POST', ])
+@permission_classes([IsAuthenticated])
+def user_verification(request):
+    data = {}
+    if request.method == 'POST':
+
+
+        verifycode = request.data.get('verification_code')
+        account = request.user
+
+        codes = AccountCode.objects.filter(user=account.pk)
+        if codes.count() == 0:
+            return Response({'response':'error', 'error_msg':'something went wrong!'})
+
+        if verifycode == codes[0].verification_code:
+
+            data['email'] = account.email
+            data['response'] = 'success'
+            account.verified = True
+            account.save()
+            return Response(data)
+
+        data['response'] = 'error'
+        data['error_msg'] = 'invalid code'
+        return Response(data)
+
 
 
 

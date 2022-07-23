@@ -55,10 +55,10 @@ class OrderedItemCreate(APIView):
                 if(i.complete==False):
                     Currentorder = i
                     break
-                else:
-                    Currentorder = Order.objects.create(customer=customer)
-                    Currentorder = Currentorder.save()
-                    Currentorder = Currentorder.objects.all().first()
+        else:
+            Currentorder = Order.objects.create(customer=customer)
+            Currentorder = Currentorder.save()
+            Currentorder = Currentorder.objects.all().first()
 
         print("after loop",Currentorder)
         itemId         = request.data.get('id')
@@ -201,24 +201,21 @@ class Checkout(APIView):
         for OrderedItem in OrderedItems :
             item             =      OrderedItem.item
             item.quantity    =      item.quantity - OrderedItem.quantity
+            if(item.quantity<0):
+                item.quantity=0
             item.save()
 
         Cart.transaction_id = transaction_id
+        Cart.save()
 
         serializer          = self.serializer_class(OrderedItems,many=True)
-        if serializer.is_valid():
-            serializer.save()
-            context['OrderedItems']     = serializer.data
-            context['ItemsQuantity']    = Cart.get_cart_quantity
-            context['TotalPrice']       = Cart.get_cart_total
-            context['OrderStatus']      = Cart.get_order_status
-            context['transaction_id']   = transaction_id
-            context['address']          = request.user.customer.address
-            context['response']      ='success'
-            return Response(data=context)
-
-        context = serializer.errors.copy()
-        context['response'] = 'error'
+        context['OrderedItems']     = serializer.data
+        context['ItemsQuantity']    = Cart.get_cart_quantity
+        context['TotalPrice']       = Cart.get_cart_total
+        context['OrderStatus']      = Cart.get_order_status
+        context['transaction_id']   = Cart.transaction_id
+        context['address']          = request.user.customer.address
+        context['response']      ='success'
         return Response(data=context)
 
 

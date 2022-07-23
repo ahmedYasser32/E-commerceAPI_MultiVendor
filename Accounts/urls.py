@@ -1,8 +1,5 @@
 from django.urls import path
-from rest_framework_simplejwt.views import (TokenObtainPairView,
-    TokenRefreshView)
-
-from Accounts.views import RegisterAPI,UserLogin,VendorCreate,CustomerCreate,Customerget,Vendorget
+from Accounts.views import RegisterAPI,UserLogin,VendorCreate,CustomerCreate,Customerget,Vendorget, user_verification, check_verification_mail
 
 
 
@@ -18,22 +15,9 @@ urlpatterns = [
     path('PostCustomer/',     CustomerCreate.as_view()),
     path('GetVendor/<int:id>',        Vendorget.as_view()),
     path('GetCustomer/<int:id>',      Customerget.as_view()),
+    path('verification',      user_verification),
+    path('resend_verification',      check_verification_mail),
 
 ]
 
-"""
 
-from .views import MyTokenObtainPairView
-
-from rest_framework_simplejwt.views import (
-    TokenRefreshView,
-)
-
-
-urlpatterns = [
-    path('', views.getRoutes),
-    path('notes/', views.getNotes),
-
-    path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-"""

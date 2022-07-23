@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from Accounts.models import Account,Customer,Vendor
+from Accounts.models import Account, Customer, Vendor, AccountCode
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -55,3 +55,8 @@ class VendorSerializer(serializers.ModelSerializer):
     class Meta:
          model = Vendor
          fields='__all__'
+
+class AccountCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccountCode
+        fields=['verification_code']
