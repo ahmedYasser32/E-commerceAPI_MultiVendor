@@ -12,7 +12,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 import datetime as dt
 from Accounts.models import Vendor,Customer
 from shopping.models import Item,OrderItem,Order
-from shopping.serializers import OrderedItemSerializer,OrderedItemSerializerList
+from shopping.serializers import OrderedItemSerializerList,OrderedItemSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class OrderedItemCreate(APIView):
@@ -224,13 +224,13 @@ class status(APIView):
 
     authentication_classes = [JWTAuthentication]
     permission_classes     = [IsAuthenticated]
-    serializer_class       = OrderedItemSerializer
+    serializer_class       = OrderedItemSerializerList
     @swagger_auto_schema(request_body=openapi.Schema(operation_description="API to Check Out",
      type=openapi.TYPE_OBJECT,
      properties={
         'OrderedItemid'  : openapi.Schema(type=openapi.TYPE_INTEGER , description='Order PK'),
         'status': openapi.Schema(type=openapi.TYPE_INTEGER  , description='status of item [(1,"preparing"),(2,"Ready"),(3,"Delivering"),(4,"Delivered"),(-1,"Cancelled"),(0,"Pending")]'),
-     }), responses={201: OrderedItemSerializer, 400 : 'Bad Request'})
+     }), responses={201: OrderedItemSerializerList, 400 : 'Bad Request'})
 
     def post(self,request):
         context={}
@@ -245,6 +245,7 @@ class status(APIView):
         OrderedItemid          = request.data.get('OrderedItemid')
 
         Ordereditems           = OrderItem.objects.filter(pk=OrderedItemid)
+
 
 
 
@@ -265,9 +266,9 @@ class status(APIView):
 
 
 
-        data=request.data.copy
+        data=request.data.copy()
 
-        serializer = self.serializer_class(Ordereditems,data,partial=True)
+        serializer = self.serializer_class(Ordereditem,data,partial=True)
         if serializer.is_valid():
              serializer.save()
 
